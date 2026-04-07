@@ -1,78 +1,118 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot.subsystems;
 
-
-import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
-
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import dev.doglog.DogLog;
-import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import dev.doglog.DogLog;
-import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Indexer extends SubsystemBase {
+
+  private static final boolean kInverted = false;
+  private static final int kCurrentLimitAmps = 40;
+
+  private static final double kS = 0.0;
+  private static final double kV = 0.1098;
+  private static final double kA = 0.0;
+  private static final double kP = 0.0432;
+  private static final double kI = 0.0;
+  private static final double kD = 0.0;
+
+  private static final double kIdleRps  = -2000.0 / 60.0;
+  private static final double kJamRps   =   2000.0 / 60.0;
+
   private final TalonFX motor;
-  private double setpoint = 0;
-  private StatusSignal<AngularVelocity> velSignal;
-  /** Creates a new Indexer. */
+
+  private final VelocityVoltage velocityRequest =
+      new VelocityVoltage(0.0).withSlot(0).withEnableFOC(true);
+  private final NeutralOut neutralRequest = new NeutralOut();
+
+  private double loggedSetpointRps = 0.0;
+
   public Indexer(int id) {
     motor = new TalonFX(id);
-    var slot0Configs = new Slot0Configs();
-    slot0Configs.kS = 0.1; // Add 0.1 V output to overcome static friction
-    slot0Configs.kV = 0.12; // A velocity target of 1 rps results in 0.12 V output
-    slot0Configs.kP = 0; // An error of 1 rps results in 0.11 V output
-    slot0Configs.kI = 0; // no output for integrated error
-    slot0Configs.kD = 0; // no output for error derivative
-
-    motor.getConfigurator().apply(slot0Configs);
-
-    velSignal = motor.getVelocity();
+    applyConfig();
   }
-  //   motor = new SparkMax(id, MotorType.kBrushless);
-  //   pid = motor.getClosedLoopController();
-    
-  //   encoder = motor.getEncoder();
 
-  //   SparkMaxConfig config = new SparkMaxConfig();
-  //   config.smartCurrentLimit(40);
+  private void applyConfig() {
+    TalonFXConfiguration cfg = new TalonFXConfiguration();
 
-  //   config.inverted(true);
-  //   config.closedLoop.feedForward.kS(0.1);
-  //   config.closedLoop.feedForward.kV(0.12);
-  //   config.closedLoop.p(0);
-  //   config.closedLoop.i(0);
-  //   motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-  // }
+    MotorOutputConfigs motorOut = cfg.MotorOutput;
+    motorOut.Inverted =
+        kInverted ? InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
+    motorOut.NeutralMode = NeutralModeValue.Coast;
 
+    Slot0Configs slot0 = cfg.Slot0;
+    slot0.kS = kS;
+    slot0.kV = kV;
+    slot0.kA = kA;
+    slot0.kP = kP;
+    slot0.kI = kI;
+    slot0.kD = kD;
 
-  public void setIdle() {
-    setpoint = -400   ;
+    cfg.CurrentLimits.SupplyCurrentLimit = kCurrentLimitAmps;
+    cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
+
+    motor.getConfigurator().apply(cfg);
   }
-  public void jam(){
-    setpoint = 50 ;
+
+  // ---------------------------------------------------------------------------
+  // Example:
+  //   controller.leftBumper().whileTrue(indexer.idleCommand());
+  //   controller.rightBumper().whileTrue(indexer.jamCommand());
+  // ---------------------------------------------------------------------------
+
+  public Command idleCommand() {
+    return run(() -> {
+      loggedSetpointRps = kIdleRps;
+      motor.setControl(velocityRequest.withVelocity(kIdleRps));
+    }).withName("Indexer.idle");
   }
-  public void off() {
-    setpoint = 0 ;
-  } 
+
+  public Command jamCommand() {
+    return run(() -> {
+      loggedSetpointRps = kJamRps;
+      motor.setControl(velocityRequest.withVelocity(kJamRps));
+    }).withName("Indexer.jam");
+  }
+
+  public Command runAtRps(double rps) {
+    return run(() -> {
+      loggedSetpointRps = rps;
+      motor.setControl(velocityRequest.withVelocity(rps));
+    }).withName("Indexer.runAtRps(" + rps + ")");
+  }
+
+  public Command stopCommand() {
+    return runOnce(() -> {
+      loggedSetpointRps = 0.0;
+      motor.setControl(neutralRequest);
+    }).withName("Indexer.stop");
+  }
+
+  @Deprecated
+  public void setIdle() { loggedSetpointRps = kIdleRps; motor.setControl(velocityRequest.withVelocity(kIdleRps)); }
+
+  @Deprecated
+  public void jam()     { loggedSetpointRps = kJamRps;  motor.setControl(velocityRequest.withVelocity(kJamRps));  }
+
+  @Deprecated
+  public void off()     { loggedSetpointRps = 0.0;      motor.setControl(neutralRequest); }
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
-    final VelocityVoltage m_request = new VelocityVoltage(setpoint).withSlot(0);
-    // final VelocityVoltage m_request = new VelocityVoltage(setpoint).withSlot(0);
-    motor.setControl(m_request);
+    double measuredRps = motor.getVelocity().getValueAsDouble();
 
-    velSignal.refresh();
-    DogLog.log("indexer/setpoint", setpoint);
-    DogLog.log("indexer/speed", velSignal.getValue());    
+    DogLog.log("Indexer/SetpointRPS",    loggedSetpointRps);
+    DogLog.log("Indexer/MeasuredRPS",    measuredRps);
+    DogLog.log("Indexer/AppliedOutput",  motor.getDutyCycle().getValueAsDouble());
+    DogLog.log("Indexer/BusVoltage",     motor.getSupplyVoltage().getValueAsDouble());
+    DogLog.log("Indexer/StatorCurrent",  motor.getStatorCurrent().getValueAsDouble());
   }
 }
-

@@ -88,6 +88,7 @@ public class RobotContainer {
     }
 
     private void configureBindings() {
+    // Drive train logic ------------------------------------------------------------------------------
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() ->
                 drive.withVelocityX(-joystick.getY() / 2 * MaxSpeed)
@@ -95,40 +96,42 @@ public class RobotContainer {
                     .withRotationalRate((-joystick.getZ()))
             )
         );
-
         final var idle = new SwerveRequest.Idle();
         RobotModeTriggers.disabled().whileTrue(
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
-
         drivetrain.registerTelemetry(logger::telemeterize);
+    // ------------------------------------------------------------------------------
 
-        flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
-        flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
-        flywheel3trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3600)));
-        flywheel4trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3800)));
-        flywheel5trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4000)));
-        flywheel6trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4200)));
-        flywheel7trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4400)));
-        flywheel8trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
-        flywheel9trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4800)));
-        flywheel10trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5000)));
-        flywheel11trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5200)));
-        flywheel12trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5400)));
-        flywheel13trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5600)));
-        flywheel14trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800)));
-        flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5950)));
-
+    
         gyroResetButton.onTrue(Commands.runOnce(() -> pigeon2.reset()));
 
-        indexerButton.onTrue(indexer.run(() -> indexer.setIdle()));
-        indexerButton.onTrue(agitator.run(() -> agitator.setIdle(45)));
-        intakeButton.onTrue(intake.run(() -> intake.on(-300)));
-        intakeEctButton.onTrue(intake.run(() -> intake.on(100)));
-        indexerButton.onFalse(indexer.run(() -> indexer.off()));
-        indexerJam.onTrue(indexer.run(() -> indexer.jam()));
-        indexerJam.onFalse(indexer.run(() -> indexer.off()));
-        indexerButton.onFalse(agitator.run(() -> agitator.setIdle(0)));
+        flywheel1trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(3200)));
+        flywheel2trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(3400)));
+        flywheel3trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(3600)));
+        flywheel4trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(3800)));
+        flywheel5trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(4000)));
+        flywheel6trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(4200)));
+        flywheel7trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(4400)));
+        flywheel8trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(4600)));
+        flywheel9trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(4800)));
+        flywheel10trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(5000)));
+        flywheel11trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(5200)));
+        flywheel12trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(5400)));
+        flywheel13trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(5600)));
+        flywheel14trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(5800)));
+        flywheel15trButton.toggleOnTrue(flywheel.run(() -> flywheel.spinAtRpm(5950)));
+
+        indexerButton.whileTrue(
+            indexer.idleCommand()
+                .alongWith(agitator.idleCommand())
+        );
+
+        indexerJam.whileTrue(indexer.jamCommand());
+
+        intakeButton.whileTrue(intake.intakeCommand());
+
+        intakeEctButton.whileTrue(intake.ejectCommand());
     }
 
     public Command getAutonomousCommand() {
