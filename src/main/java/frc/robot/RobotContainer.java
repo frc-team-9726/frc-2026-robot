@@ -35,7 +35,7 @@ public class RobotContainer {
     private final Flywheel flywheel = new Flywheel(14);
     private final Indexer indexer = new Indexer(20);
     private final Agitator agitator = new Agitator(4);
-    private final Intake intake = new Intake(2);
+    private final Intake intake = new Intake(2); 
     
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
@@ -123,7 +123,7 @@ public class RobotContainer {
         flywheel12trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5400))); //button 15
         flywheel13trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5600))); //button 10
         flywheel14trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800))); // button 5
-        flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(6000))); // button 5
+        flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5950))); // button 5
 
 
         gyroResetButton.onTrue(Commands.runOnce(
