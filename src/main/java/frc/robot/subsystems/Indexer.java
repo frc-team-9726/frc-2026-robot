@@ -37,11 +37,11 @@ public class Indexer extends SubsystemBase {
   }
 
   public void intake() {
-    speed = 0.15;
+    speed = 0.6;
   }
 
   public void outake() {
-    speed = -0.15;
+    speed = -0.6;
   }
 
   public void stop() {

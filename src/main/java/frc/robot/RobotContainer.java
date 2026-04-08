@@ -104,21 +104,21 @@ public class RobotContainer {
 
         drivetrain.registerTelemetry(logger::telemeterize);
 
-        // flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
-        // flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
-        // flywheel3trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3600)));
-        // flywheel4trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3800)));
-        // flywheel5trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4000)));
-        // flywheel6trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4200)));
-        // flywheel7trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4400)));
-        // flywheel8trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
-        // flywheel9trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4800)));
-        // flywheel10trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5000)));
-        // flywheel11trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5200)));
-        // flywheel12trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5400)));
-        // flywheel13trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5600)));
-        // flywheel14trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800)));
-        // flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5950)));
+        flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
+        flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
+        flywheel3trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3600)));
+        flywheel4trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3800)));
+        flywheel5trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4000)));
+        flywheel6trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4200)));
+        flywheel7trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4400)));
+        flywheel8trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
+        flywheel9trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4800)));
+        flywheel10trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5000)));
+        flywheel11trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5200)));
+        flywheel12trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5400)));
+        flywheel13trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5600)));
+        flywheel14trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800)));
+        flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5950)));
 
         gyroResetButton.onTrue(Commands.runOnce(() -> pigeon2.reset()));
 
