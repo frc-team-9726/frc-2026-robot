@@ -13,6 +13,9 @@ public class Agitator extends SubsystemBase {
   private final SparkMax motor;
   private final SparkMaxConfig sparkConfig;
 
+  private double speed = 0.0;
+  private double oldSpeed = 0.0;
+
   /** Creates a new Indexer. */
   public Agitator(int id) {
     motor = new SparkMax(id, MotorType.kBrushless);
@@ -31,19 +34,23 @@ public class Agitator extends SubsystemBase {
   }
 
   public void intake() {
-    motor.set(0.01);
+    speed = 0.4;
   }
 
   public void outake() {
-    motor.set(-0.01);
+    speed = -0.4;
   }
 
   public void stop() {
-    motor.set(0);
+    speed = 0.0;
   }
 
   @Override
   public void periodic() {
+    if (speed != oldSpeed) {
+      oldSpeed = speed;
+      motor.set(oldSpeed);
+    }
     DogLog.log("indexer/outputCurrent", motor.getOutputCurrent());
     DogLog.log("indexer/speed", motor.getEncoder().getVelocity());
   }
