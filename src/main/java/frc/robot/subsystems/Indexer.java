@@ -1,5 +1,10 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.configs.MotorOutputConfigs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -10,24 +15,25 @@ import dev.doglog.DogLog;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Indexer extends SubsystemBase {
-  private final SparkMax motor;
-  private final SparkMaxConfig sparkConfig;
+  private final TalonFX motor;
+  private final TalonFXConfiguration cfg;
+  private double speed = 0.0;
+  private double oldSpeed = 0.0;
 
   /** Creates a new Indexer. */
   public Indexer(int id) {
-    motor = new SparkMax(id, MotorType.kBrushless);
+    motor = new TalonFX(id);
     
-    sparkConfig = new SparkMaxConfig();
+    cfg = new TalonFXConfiguration();
 
-    sparkConfig
-        .idleMode(SparkMaxConfig.IdleMode.kCoast)
-        .smartCurrentLimit(40)
-        .voltageCompensation(12.0);
-    sparkConfig.signals.appliedOutputPeriodMs(20);
-    sparkConfig.inverted(true);
-
-    motor.configure(
-        sparkConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    
+    MotorOutputConfigs motorOut = cfg.MotorOutput;
+    motorOut.Inverted = InvertedValue.Clockwise_Positive;
+    motorOut.NeutralMode = NeutralModeValue.Coast;
+    
+    cfg.CurrentLimits.SupplyCurrentLimit = 40;
+    cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
+    motor.getConfigurator().apply(cfg);
   }
 
   public void intake() {
@@ -39,12 +45,14 @@ public class Indexer extends SubsystemBase {
   }
 
   public void stop() {
-    motor.set(0);
+    speed = 0.0;
   }
 
   @Override
   public void periodic() {
-    DogLog.log("indexer/outputCurrent", motor.getOutputCurrent());
-    DogLog.log("indexer/speed", motor.getEncoder().getVelocity());
+    if (speed != oldSpeed) {
+      oldSpeed = speed;
+      motor.set(oldSpeed);
+    }
   }
 }

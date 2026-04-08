@@ -27,18 +27,18 @@ public class Intake extends SubsystemBase {
         .smartCurrentLimit(40)
         .voltageCompensation(12.0);
     sparkConfig.signals.appliedOutputPeriodMs(20);
-    sparkConfig.inverted(true);
+    sparkConfig.inverted(false);
 
     motor.configure(
         sparkConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
 
   public void intake() {
-    speed = 0.4;
+    speed = 0.9;
   }
 
   public void outake() {
-    speed = -0.4;
+    speed = -0.9;
   }
 
   public void stop() {

@@ -30,12 +30,12 @@ import frc.robot.subsystems.Limelight;
 import frc.robot.util.singlemotortests.SingleMotorVelocityPIDFKrakenTest;
 
 public class RobotContainer {
-    private final SingleMotorVelocityPIDFKrakenTest singleMotorVelocityPIDFKrakenTest;
+    // private final SingleMotorVelocityPIDFKrakenTest singleMotorVelocityPIDFKrakenTest;
 
     private final Pigeon2 pigeon2;
     private final Limelight limelight = new Limelight("");
-    // private final Flywheel flywheel = new Flywheel(14);
-    private final Indexer indexer = new Indexer(20);
+    private final Flywheel flywheel = new Flywheel(14);
+    private final Indexer indexer = new Indexer(34);
     private final Agitator agitator = new Agitator(4);
     private final Intake intake = new Intake(2);
 
@@ -81,7 +81,7 @@ public class RobotContainer {
     public RobotContainer() {
         pigeon2 = new Pigeon2(TunerConstants.kPigeonId, TunerConstants.kCANBus);
 
-        singleMotorVelocityPIDFKrakenTest = new SingleMotorVelocityPIDFKrakenTest();
+        // singleMotorVelocityPIDFKrakenTest = new SingleMotorVelocityPIDFKrakenTest();
         
         configureBindings();
         autoChooser = AutoBuilder.buildAutoChooser();
@@ -104,21 +104,21 @@ public class RobotContainer {
 
         drivetrain.registerTelemetry(logger::telemeterize);
 
-        // flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
-        // flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
-        // flywheel3trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3600)));
-        // flywheel4trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3800)));
-        // flywheel5trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4000)));
-        // flywheel6trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4200)));
-        // flywheel7trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4400)));
-        // flywheel8trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
-        // flywheel9trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4800)));
-        // flywheel10trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5000)));
-        // flywheel11trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5200)));
-        // flywheel12trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5400)));
-        // flywheel13trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5600)));
-        // flywheel14trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800)));
-        // flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5950)));
+        flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
+        flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
+        flywheel3trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3600)));
+        flywheel4trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3800)));
+        flywheel5trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4000)));
+        flywheel6trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4200)));
+        flywheel7trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4400)));
+        flywheel8trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
+        flywheel9trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4800)));
+        flywheel10trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5000)));
+        flywheel11trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5200)));
+        flywheel12trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5400)));
+        flywheel13trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5600)));
+        flywheel14trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800)));
+        flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5950)));
 
         gyroResetButton.onTrue(Commands.runOnce(() -> pigeon2.reset()));
 
@@ -127,15 +127,27 @@ public class RobotContainer {
             indexer.intake();
             agitator.intake();
         }));
+        JOYSTICK_BUTTON_1.onFalse(Commands.runOnce(() -> {
+            indexer.stop();
+            agitator.stop();
+        }));
 
         JOYSTICK_BUTTON_3.onTrue(Commands.runOnce(() -> {
             agitator.intake();
             intake.intake();
         }));
+        JOYSTICK_BUTTON_3.onFalse(Commands.runOnce(() -> {
+            agitator.stop();
+            intake.stop();
+        }));
 
         JOYSTICK_BUTTON_4.onTrue(Commands.runOnce(() -> {
             agitator.outake();
             intake.outake();
+        }));
+        JOYSTICK_BUTTON_4.onFalse(Commands.runOnce(() -> {
+            agitator.stop();
+            intake.stop();
         }));
     }
 
