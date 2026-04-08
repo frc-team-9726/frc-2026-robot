@@ -31,11 +31,11 @@ public class Agitator extends SubsystemBase {
   }
 
   public void intake() {
-    motor.set(0.01);
+    motor.set(0.25);
   }
 
   public void outake() {
-    motor.set(-0.01);
+    motor.set(-0.25);
   }
 
   public void stop() {
