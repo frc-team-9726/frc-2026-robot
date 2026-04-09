@@ -67,8 +67,11 @@ public class TunerConstants {
     private static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
 
     // The Pigeon 2 is mounted upside-down on this robot, so roll is offset 180°.
-    private static final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration()
-        .withMountPose(new MountPoseConfigs().withMountPoseRoll(180));
+private static final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration()
+    .withMountPose(new MountPoseConfigs()
+        .withMountPoseRoll(180)
+        .withMountPoseYaw(-90) 
+    );
 
     // -------------------------------------------------------------------------
     // Drivetrain Physical Constants
