@@ -69,8 +69,8 @@ public class TunerConstants {
     // The Pigeon 2 is mounted upside-down on this robot, so roll is offset 180°.
 private static final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration()
     .withMountPose(new MountPoseConfigs()
-        .withMountPoseRoll(180)
-        .withMountPoseYaw(-90) 
+        .withMountPoseRoll(0)
+        .withMountPoseYaw(0) 
     );
 
     // -------------------------------------------------------------------------
@@ -83,7 +83,7 @@ private static final Pigeon2Configuration pigeonConfigs = new Pigeon2Configurati
     public static final int kPigeonId = 9;
 
     // Theoretical top speed at 12 V — used to normalize joystick input.
-    public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(1);
+    public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(4);
 
     // How many drive motor rotations result from one full azimuth rotation (due to belt/gear coupling).
     private static final double kCoupleRatio = 5.4;

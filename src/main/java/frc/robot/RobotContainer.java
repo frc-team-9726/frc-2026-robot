@@ -12,7 +12,10 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -20,6 +23,7 @@ import edu.wpi.first.wpilibj.XboxController.Button;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import frc.robot.commands.AdaptiveHubAiming;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Flywheel;
@@ -33,7 +37,6 @@ public class RobotContainer {
     // private final SingleMotorVelocityPIDFKrakenTest singleMotorVelocityPIDFKrakenTest;
 
     private final Pigeon2 pigeon2;
-    private final Limelight limelight = new Limelight("");
     private final Flywheel flywheel = new Flywheel(14);
     private final Indexer indexer = new Indexer(34);
     private final Agitator agitator = new Agitator(4);
@@ -42,14 +45,26 @@ public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond);
 
+    // 2 = 0.5 seconds to max speed, 4 = 0.25 seconds etc...
+    private final SlewRateLimiter xLimiter       = new SlewRateLimiter(2.0);
+    private final SlewRateLimiter yLimiter       = new SlewRateLimiter(2.0);
+    private final SlewRateLimiter rotLimiter     = new SlewRateLimiter(2.0);
+
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+
+    private final SwerveRequest.FieldCentricFacingAngle driveWithAngle = 
+        new SwerveRequest.FieldCentricFacingAngle()
+            .withDeadband(MaxSpeed * 0.1)
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage)
+            .withHeadingPID(5.0, 0.0, 0.0);
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
     private final Joystick keyboard = new Joystick(0);
     private final Joystick joystick1 = new Joystick(1);
+    private final Joystick joystick2 = new Joystick(2);
 
     private final JoystickButton gyroResetButton = new JoystickButton(joystick1, 8);
 
@@ -57,22 +72,23 @@ public class RobotContainer {
     private final JoystickButton JOYSTICK_BUTTON_3 = new JoystickButton(joystick1, 3);
     private final JoystickButton JOYSTICK_BUTTON_4 = new JoystickButton(joystick1, 4);
 
-    private final JoystickButton flywheel1trButton = new JoystickButton(keyboard, 1);
-    private final JoystickButton flywheel2trButton = new JoystickButton(keyboard, 2);
-    private final JoystickButton flywheel3trButton = new JoystickButton(keyboard, 3);
-    private final JoystickButton flywheel4trButton = new JoystickButton(keyboard, 4);
-    private final JoystickButton flywheel5trButton = new JoystickButton(keyboard, 5);
-    private final JoystickButton flywheel6trButton = new JoystickButton(keyboard, 6);
-    private final JoystickButton flywheel7trButton = new JoystickButton(keyboard, 7);
-    private final JoystickButton flywheel8trButton = new JoystickButton(keyboard, 8);
-    private final JoystickButton flywheel9trButton = new JoystickButton(keyboard, 9);
+    private final JoystickButton flywheel1trButton  = new JoystickButton(keyboard, 1);
+    private final JoystickButton flywheel2trButton  = new JoystickButton(keyboard, 2);
+    private final JoystickButton flywheel3trButton  = new JoystickButton(keyboard, 3);
+    private final JoystickButton flywheel4trButton  = new JoystickButton(keyboard, 4);
+    private final JoystickButton flywheel5trButton  = new JoystickButton(keyboard, 5);
+    private final JoystickButton flywheel6trButton  = new JoystickButton(keyboard, 6);
+    private final JoystickButton flywheel7trButton  = new JoystickButton(keyboard, 7);
+    private final JoystickButton flywheel8trButton  = new JoystickButton(keyboard, 8);
+    private final JoystickButton flywheel9trButton  = new JoystickButton(keyboard, 9);
     private final JoystickButton flywheel10trButton = new JoystickButton(keyboard, 10);
     private final JoystickButton flywheel11trButton = new JoystickButton(keyboard, 11);
     private final JoystickButton flywheel12trButton = new JoystickButton(keyboard, 12);
     private final JoystickButton flywheel13trButton = new JoystickButton(keyboard, 13);
     private final JoystickButton flywheel14trButton = new JoystickButton(keyboard, 14);
     private final JoystickButton flywheel15trButton = new JoystickButton(keyboard, 15);
-    private final JoystickButton OFFButton = new JoystickButton(keyboard, 20);
+    private final JoystickButton flywheel16trButton = new JoystickButton(keyboard, 16);
+    private final JoystickButton OFFButton          = new JoystickButton(keyboard, 20);
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain(drive);
 
@@ -82,27 +98,75 @@ public class RobotContainer {
         pigeon2 = new Pigeon2(TunerConstants.kPigeonId, TunerConstants.kCANBus);
 
         // singleMotorVelocityPIDFKrakenTest = new SingleMotorVelocityPIDFKrakenTest();
-        
+
         configureBindings();
         autoChooser = AutoBuilder.buildAutoChooser();
         SmartDashboard.putData("Auto Chooser", autoChooser);
     }
 
-    private void configureBindings() {
-        drivetrain.setDefaultCommand(
-            drivetrain.applyRequest(() ->
-                drive.withVelocityX(-joystick1.getY() / 2 * MaxSpeed)
-                    .withVelocityY(-joystick1.getX() / 2 * MaxSpeed)
-                    .withRotationalRate((-joystick1.getZ()))
+private void configureBindings() {
+    // --- Default drive: joystick1, normal rate-based turning ---
+    drivetrain.setDefaultCommand(
+        drivetrain.applyRequest(() -> {
+            double rawX   = -joystick1.getY() * 0.9;
+            double rawY   = -joystick1.getX() * 0.9;
+            double rawRot = -joystick1.getZ();
+
+            double filteredX   = xLimiter.calculate(rawX);
+            double filteredY   = yLimiter.calculate(rawY);
+            double filteredRot = rotLimiter.calculate(rawRot);
+
+            return drive
+                .withVelocityX(filteredX * MaxSpeed)
+                .withVelocityY(filteredY * MaxSpeed)
+                .withRotationalRate(filteredRot * MaxAngularRate);
+        })
+    );
+
+    new JoystickButton(joystick2, 1).whileTrue(
+        drivetrain.applyRequest(() -> {
+            double rawX = -joystick2.getY() * 0.9;
+            double rawY = -joystick2.getX() * 0.9;
+            double rotX = joystick2.getZ();
+
+            double filteredX = xLimiter.calculate(rawX);
+            double filteredY = yLimiter.calculate(rawY);
+
+            if (Math.abs(rotX) > 0.2) {
+                return driveWithAngle
+                    .withVelocityX(filteredX * MaxSpeed)
+                    .withVelocityY(filteredY * MaxSpeed)
+                    .withTargetDirection(Rotation2d.fromRadians(rotX * Math.PI));
+            } else {
+                return drive
+                    .withVelocityX(filteredX * MaxSpeed)
+                    .withVelocityY(filteredY * MaxSpeed)
+                    .withRotationalRate(0);
+            }
+            })
+        );
+
+        drivetrain.registerTelemetry(logger::telemeterize);
+
+
+        AdaptiveHubAiming aimingCommand = new AdaptiveHubAiming(flywheel, drivetrain, DriverStation.getAlliance().orElse(Alliance.Blue) != Alliance.Red);
+
+        flywheel16trButton.whileTrue(
+            aimingCommand.alongWith(
+                drivetrain.runAimingInputs(
+                    () -> {
+                        double rawX = -joystick1.getY() * 0.9;
+                        return xLimiter.calculate(rawX) * MaxSpeed;
+                    },
+                    () -> {
+                        double rawY = -joystick1.getX() * 0.9;
+                        return yLimiter.calculate(rawY) * MaxSpeed;
+                    },
+                    aimingCommand::getFieldAimRotation
+                )
             )
         );
 
-        // final var idle = new SwerveRequest.Idle();
-        // RobotModeJoystickButtons.disabled().whileTrue(
-        //     drivetrain.applyRequest(() -> idle).ignoringDisable(true)
-        // );
-
-        drivetrain.registerTelemetry(logger::telemeterize);
 
         flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
         flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
@@ -121,7 +185,6 @@ public class RobotContainer {
         flywheel15trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5950)));
 
         gyroResetButton.onTrue(Commands.runOnce(() -> pigeon2.reset()));
-
 
         JOYSTICK_BUTTON_1.onTrue(Commands.runOnce(() -> {
             indexer.intake();
