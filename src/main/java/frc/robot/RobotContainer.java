@@ -70,6 +70,7 @@ public class RobotContainer {
     private final JoystickButton gyroResetButton = new JoystickButton(joystick1, 8);
 
     private final JoystickButton JOYSTICK_BUTTON_1 = new JoystickButton(joystick1, 1);
+    private final JoystickButton JOYSTICK_BUTTON_2 = new JoystickButton(joystick1, 2);
     private final JoystickButton JOYSTICK_BUTTON_3 = new JoystickButton(joystick1, 3);
     private final JoystickButton JOYSTICK_BUTTON_4 = new JoystickButton(joystick1, 4);
 
@@ -208,21 +209,21 @@ private void configureBindings() {
 
         gyroResetButton.onTrue(Commands.runOnce(() -> pigeon2.reset()));
 
-        JOYSTICK_BUTTON_1.onTrue(Commands.runOnce(() -> {
+        JOYSTICK_BUTTON_2.onTrue(Commands.runOnce(() -> {
             indexer.intake();
             agitator.intake();
         }));
-        JOYSTICK_BUTTON_1.onFalse(Commands.runOnce(() -> {
+
+        JOYSTICK_BUTTON_2.onFalse(Commands.runOnce(() -> {
             indexer.stop();
             agitator.stop();
         }));
 
         JOYSTICK_BUTTON_3.onTrue(Commands.runOnce(() -> {
-            agitator.intake();
             intake.intake();
         }));
+
         JOYSTICK_BUTTON_3.onFalse(Commands.runOnce(() -> {
-            agitator.stop();
             intake.stop();
         }));
 

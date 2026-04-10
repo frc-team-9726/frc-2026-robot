@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Indexer extends SubsystemBase {
   private final TalonFX motor;
   private final TalonFXConfiguration cfg;
+
   private double speed = 0.0;
   private double oldSpeed = 0.0;
 
@@ -25,7 +26,6 @@ public class Indexer extends SubsystemBase {
     motor = new TalonFX(id);
     
     cfg = new TalonFXConfiguration();
-
     
     MotorOutputConfigs motorOut = cfg.MotorOutput;
     motorOut.Inverted = InvertedValue.Clockwise_Positive;
@@ -37,11 +37,11 @@ public class Indexer extends SubsystemBase {
   }
 
   public void intake() {
-    motor.set(0.8);
+    speed = 0.8;
   }
 
   public void outake() {
-    motor.set(-0.8);
+    speed = -0.8;
   }
 
   public void stop() {
