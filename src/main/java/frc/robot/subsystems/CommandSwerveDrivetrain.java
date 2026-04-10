@@ -44,10 +44,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private final SlewRateLimiter limiter = new SlewRateLimiter(1);
 
-    /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
-    private static final Rotation2d kBlueAlliancePerspectiveRotation = new Rotation2d(Math.toRadians(0));
-    /* Red alliance sees forward as 180 degrees (toward blue alliance wall) */
-    private static final Rotation2d kRedAlliancePerspectiveRotation = new Rotation2d(Math.toRadians(0));
+    private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.fromDegrees(0);
+    private static final Rotation2d kRedAlliancePerspectiveRotation  = Rotation2d.fromDegrees(0);
 
     private boolean m_hasAppliedOperatorPerspective = false;
 
@@ -63,9 +61,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
-            null,    
-            Volts.of(4), 
-            null,  
+            null,
+            Volts.of(4),
+            null,
             state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())
         ),
         new SysIdRoutine.Mechanism(
@@ -169,7 +167,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             (speeds, feedforwards) -> driveRobotRelative(speeds),
             new PPHolonomicDriveController(
                 new PIDConstants(4.0, 0.0, 0.0),
-                new PIDConstants(4.0, 0.0, 0.0)
+                new PIDConstants(3.2, 0.0, 0.0)
             ),
             config,
             () -> {

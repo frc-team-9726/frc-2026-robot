@@ -24,12 +24,18 @@ public class Limelight extends SubsystemBase {
         this.telemetryTable = NetworkTableInstance.getDefault().getTable("SmartDashboard/" + name);
         this.posePublisher = telemetryTable.getStructTopic("Estimated Robot Pose", Pose2d.struct).publish();
 
+        LimelightHelpers.setCameraPose_RobotSpace(
+            name,
+            -5.75, -15.75, 13.75, // x, y, z translation in meters
+            0.0, 22.5, 90.0  // roll, pitch, yaw rotation in degrees
+        );
         LimelightHelpers.SetIMUMode(name, 1);
     }
 
     public Optional<Measurement> getMeasurement(Pose2d currentRobotPose) {
         LimelightHelpers.SetRobotOrientation(
             name,
+            // currentRobotPose.getRotation().getDegrees(),
             currentRobotPose.getRotation().getDegrees(),
             0, 0, 0, 0, 0
         );
