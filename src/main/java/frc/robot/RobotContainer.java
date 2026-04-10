@@ -11,6 +11,7 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -100,6 +101,27 @@ public class RobotContainer {
         // singleMotorVelocityPIDFKrakenTest = new SingleMotorVelocityPIDFKrakenTest();
 
         configureBindings();
+
+        NamedCommands.registerCommand("shoot", Commands.runOnce(() -> {
+            indexer.intake();
+            agitator.intake();
+        }));
+
+        NamedCommands.registerCommand("stop shoot", Commands.runOnce(() -> {
+            indexer.stop();
+            agitator.stop();
+        }));
+
+        NamedCommands.registerCommand("intake", Commands.runOnce(() -> {
+            agitator.intake();
+            intake.intake();
+        }));
+
+        NamedCommands.registerCommand("stop intake", Commands.runOnce(() -> {
+            agitator.stop();
+            intake.stop();
+        }));
+
         autoChooser = AutoBuilder.buildAutoChooser();
         SmartDashboard.putData("Auto Chooser", autoChooser);
     }
