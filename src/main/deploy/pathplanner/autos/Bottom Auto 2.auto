@@ -11,7 +11,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Top Auto 1"
+                  "pathName": "Bottom Auto 1"
                 }
               },
               {
@@ -57,19 +57,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Top Auto 1 2"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "shoot speed close"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "shoot"
+            "pathName": "Bottom Auto 1 2.1"
           }
         }
       ]

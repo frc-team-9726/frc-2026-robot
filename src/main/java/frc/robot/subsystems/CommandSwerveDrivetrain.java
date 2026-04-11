@@ -24,6 +24,9 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -49,15 +52,27 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private boolean m_hasAppliedOperatorPerspective = false;
 
+    // -----------------------------------------------------------------------
+    // Vision seeding
+    // On first valid Limelight measurement we hard-reset the pose estimator
+    // so odometry starts from a real field position instead of (0, 0).
+    // Without this, a large initial error causes the Kalman filter to reject
+    // vision measurements because they disagree too much with odometry.
+    // -----------------------------------------------------------------------
+    private boolean m_hasSeededPose = false;
+
+    private final StructPublisher<Pose2d> posePublisher;
+    private final NetworkTable telemetryTable;
+
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
-    private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
-    private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
+    private final SwerveRequest.SysIdSwerveSteerGains  m_steerCharacterization       = new SwerveRequest.SysIdSwerveSteerGains();
+    private final SwerveRequest.SysIdSwerveRotation    m_rotationCharacterization    = new SwerveRequest.SysIdSwerveRotation();
 
     private final SwerveRequest.ApplyRobotSpeeds m_pathPlannerRequest = new SwerveRequest.ApplyRobotSpeeds();
 
     private final SwerveRequest.FieldCentricFacingAngle m_aimRequest =
         new SwerveRequest.FieldCentricFacingAngle()
-            .withHeadingPID(7.0, 0.0, 0.0);
+            .withHeadingPID(3.2, 0.0, 0.0);
 
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
@@ -106,18 +121,21 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
-    private final Limelight limelight = new Limelight("limelight");
+    private final Limelight limelight;
 
     public CommandSwerveDrivetrain(
         SwerveRequest.FieldCentric driveCentric,
         SwerveDrivetrainConstants drivetrainConstants,
+        Limelight limelight,
         SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, modules);
         this.drive = driveCentric;
-        if (Utils.isSimulation()) {
-            startSimThread();
-        }
+        this.limelight = limelight;
+        this.telemetryTable = NetworkTableInstance.getDefault().getTable("RealPose");
+        posePublisher = telemetryTable.getStructTopic("Real Pose", Pose2d.struct).publish();
+
+        if (Utils.isSimulation()) startSimThread();
         configurePathPlanner();
     }
 
@@ -125,13 +143,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SwerveRequest.FieldCentric driveCentric,
         SwerveDrivetrainConstants drivetrainConstants,
         double odometryUpdateFrequency,
+        Limelight limelight,
         SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, odometryUpdateFrequency, modules);
         this.drive = driveCentric;
-        if (Utils.isSimulation()) {
-            startSimThread();
-        }
+        this.limelight = limelight;
+        this.telemetryTable = NetworkTableInstance.getDefault().getTable("RealPose");
+        posePublisher = telemetryTable.getStructTopic("Real Pose", Pose2d.struct).publish();
+
+        if (Utils.isSimulation()) startSimThread();
         configurePathPlanner();
     }
 
@@ -141,13 +162,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         double odometryUpdateFrequency,
         Matrix<N3, N1> odometryStandardDeviation,
         Matrix<N3, N1> visionStandardDeviation,
+        Limelight limelight,
         SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
         this.drive = driveCentric;
-        if (Utils.isSimulation()) {
-            startSimThread();
-        }
+        this.limelight = limelight;
+        this.telemetryTable = NetworkTableInstance.getDefault().getTable("RealPose");
+        posePublisher = telemetryTable.getStructTopic("Real Pose", Pose2d.struct).publish();
+
+        if (Utils.isSimulation()) startSimThread();
         configurePathPlanner();
     }
 
@@ -166,8 +190,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             this::getRobotRelativeSpeeds,
             (speeds, feedforwards) -> driveRobotRelative(speeds),
             new PPHolonomicDriveController(
-                new PIDConstants(4.0, 0.0, 0.0),
-                new PIDConstants(3.2, 0.0, 0.0)
+                new PIDConstants(3.85, 0.0, 0.0),
+                new PIDConstants(3.2,  0.0, 0.0)
             ),
             config,
             () -> {
@@ -228,6 +252,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic() {
+        // Apply alliance-relative forward direction once we know the alliance.
         if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
             DriverStation.getAlliance().ifPresent(allianceColor -> {
                 setOperatorPerspectiveForward(
@@ -239,6 +264,25 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             });
         }
 
+        // -----------------------------------------------------------------
+        // Vision: seed the pose estimator on the first valid measurement.
+        // This eliminates the large initial odometry error that would
+        // otherwise prevent vision from correcting the estimate.
+        // -----------------------------------------------------------------
+        if (!m_hasSeededPose) {
+            limelight.getRawEstimate(getPose()).ifPresent(estimate -> {
+                // Hard-reset to the limelight's reported position.
+                // Keep the current gyro heading so the reset feels smooth.
+                Pose2d seedPose = new Pose2d(
+                    estimate.pose.getTranslation(),
+                    getPose().getRotation()
+                );
+                resetPose(seedPose);
+                m_hasSeededPose = true;
+            });
+        }
+
+        // Normal every-loop vision update.
         limelight.getMeasurement(getPose()).ifPresent(measurement ->
             addVisionMeasurement(
                 measurement.poseEstimate.pose,
@@ -246,11 +290,14 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 measurement.standardDeviations
             )
         );
+
+        // Publish real pose for AdvantageScope.
+        posePublisher.set(getPose());
     }
 
     @Override
     public void addVisionMeasurement(Pose2d visionRobotPoseMeters, double timestampSeconds) {
-        super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds));
+        super.addVisionMeasurement(visionRobotPoseMeters, timestampSeconds);
     }
 
     @Override
@@ -259,7 +306,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         double timestampSeconds,
         Matrix<N3, N1> visionMeasurementStdDevs
     ) {
-        super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds), visionMeasurementStdDevs);
+        super.addVisionMeasurement(visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
     }
 
     @Override

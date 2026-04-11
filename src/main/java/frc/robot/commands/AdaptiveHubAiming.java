@@ -10,6 +10,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Flywheel;
+import frc.robot.subsystems.Limelight;
 import frc.robot.util.FieldConstants;
 import frc.robot.util.ShotTable;
 import frc.robot.util.ShotTable.ShotSetpoint;
@@ -26,6 +27,7 @@ public class AdaptiveHubAiming extends Command {
 
   private final Flywheel flywheel;
   private final CommandSwerveDrivetrain drive;
+  private final Limelight limelight;
 
   private final boolean  isBlue;
 
@@ -35,16 +37,18 @@ public class AdaptiveHubAiming extends Command {
   private enum Target { HUB, OUTPOST, DEPOT, NONE }
   private Target targetChoice = Target.HUB;
 
-  public AdaptiveHubAiming(Flywheel flywheel, CommandSwerveDrivetrain drive, boolean isBlue) {
+  public AdaptiveHubAiming(Flywheel flywheel, CommandSwerveDrivetrain drive, Limelight limelight, boolean isBlue) {
     this.flywheel = flywheel;
     this.drive    = drive;
+    this.limelight = limelight;
     this.isBlue   = isBlue;
     addRequirements(flywheel);
   }
 
   @Override
   public void execute() {
-    Pose2d        robotPose   = drive.getPose();
+    Pose2d        robotPose   = limelight.getPose2d();
+    // robotPose = robotPose.rotateBy(new Rotation2d(Math.degreesto)));
     ChassisSpeeds robotSpeeds = drive.getRobotRelativeSpeeds();
 
     updateTargetChoice(robotPose);
@@ -75,7 +79,7 @@ public class AdaptiveHubAiming extends Command {
   }
 
   public Rotation2d getFieldAimRotation() {
-    return Rotation2d.fromRadians(fieldAimAngleRad);
+    return Rotation2d.fromRadians(fieldAimAngleRad + Math.toRadians(90));
   }
 
   public double getAimPathDistanceMeters() {

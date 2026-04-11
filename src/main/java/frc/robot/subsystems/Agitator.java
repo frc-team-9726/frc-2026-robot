@@ -34,11 +34,11 @@ public class Agitator extends SubsystemBase {
   }
 
   public void intake() {
-    speed = 0.1;
+    speed = 0.2;
   }
 
   public void outake() {
-    speed = -0.1;
+    speed = -0.2;
   }
 
   public void stop() {

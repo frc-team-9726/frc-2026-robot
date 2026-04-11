@@ -29,6 +29,7 @@ import frc.robot.subsystems.Flywheel;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Agitator;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Limelight;
 
 public class RobotContainer {
     // FIX 1: Removed duplicate Pigeon2 instance — the drivetrain already owns one
@@ -39,6 +40,7 @@ public class RobotContainer {
     private final Indexer indexer = new Indexer(34);
     private final Agitator agitator = new Agitator(4);
     private final Intake intake = new Intake(2);
+    private final Limelight limelight = new Limelight("limelight");
 
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(1.25).in(RadiansPerSecond);
@@ -56,7 +58,7 @@ public class RobotContainer {
         new SwerveRequest.FieldCentricFacingAngle()
             .withDeadband(MaxSpeed * 0.1)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage)
-            .withHeadingPID(5.0, 0.0, 0.0);
+            .withHeadingPID(3.2, 0.0, 0.0);
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
@@ -70,6 +72,7 @@ public class RobotContainer {
     private final JoystickButton JOYSTICK_BUTTON_2 = new JoystickButton(joystick1, 2);
     private final JoystickButton JOYSTICK_BUTTON_3 = new JoystickButton(joystick1, 3);
     private final JoystickButton JOYSTICK_BUTTON_4 = new JoystickButton(joystick1, 4);
+    private final JoystickButton JOYSTICK_BUTTON_13 = new JoystickButton(joystick1, 13);
     private final JoystickButton JOYSTICK_BUTTON_14 = new JoystickButton(joystick1, 14);
     private final JoystickButton JOYSTICK_BUTTON_15 = new JoystickButton(joystick1, 15);
     private final JoystickButton JOYSTICK_BUTTON_16 = new JoystickButton(joystick1, 16);
@@ -92,12 +95,16 @@ public class RobotContainer {
     private final JoystickButton flywheel16trButton = new JoystickButton(keyboard, 16);
     private final JoystickButton OFFButton          = new JoystickButton(keyboard, 20);
 
-    public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain(drive);
+    public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain(drive, limelight);
 
     private final SendableChooser<Command> autoChooser;
 
     public RobotContainer() {
         configureBindings();
+
+        NamedCommands.registerCommand("shoot speed close", Commands.runOnce(() -> {
+            flywheel.setSetpointRpm(3400);
+        }));
 
         NamedCommands.registerCommand("shoot", Commands.runOnce(() -> {
             indexer.intake();
@@ -114,9 +121,14 @@ public class RobotContainer {
             intake.intake();
         }));
 
-        NamedCommands.registerCommand("outake", Commands.runOnce(() -> {
+        NamedCommands.registerCommand("auto intake", Commands.runOnce(() -> {
             agitator.outake();
-            intake.outake();
+            intake.autoIntake();
+        }));
+
+        NamedCommands.registerCommand("auto outake", Commands.runOnce(() -> {
+            agitator.outake();
+            intake.autoOutake();
         }));
 
         NamedCommands.registerCommand("stop intake", Commands.runOnce(() -> {
@@ -171,27 +183,30 @@ public class RobotContainer {
         );
 
         drivetrain.registerTelemetry(logger::telemeterize);
-
+        
         AdaptiveHubAiming aimingCommand = new AdaptiveHubAiming(
-            flywheel, drivetrain,
+            flywheel, drivetrain, limelight,
             DriverStation.getAlliance().orElse(Alliance.Blue) != Alliance.Red
         );
 
-        flywheel16trButton.whileTrue(
-            aimingCommand.alongWith(
+        AdaptiveHubAiming aimingCommandWithHeading = new AdaptiveHubAiming(
+            flywheel, drivetrain, limelight,
+            DriverStation.getAlliance().orElse(Alliance.Blue) != Alliance.Red
+        );
+
+        // JOYSTICK_BUTTON_2.whileTrue(aimingCommand);
+
+        JOYSTICK_BUTTON_2.whileTrue(
+            aimingCommandWithHeading.alongWith(
                 drivetrain.runAimingInputs(
-                    () -> {
-                        double rawX = -joystick1.getY() * 0.9;
-                        return xLimiter.calculate(rawX) * MaxSpeed;
-                    },
-                    () -> {
-                        double rawY = -joystick1.getX() * 0.9;
-                        return yLimiter.calculate(rawY) * MaxSpeed;
-                    },
-                    aimingCommand::getFieldAimRotation
+                    () -> xLimiter.calculate(-joystick1.getY() * 0.9) * MaxSpeed,
+                    () -> yLimiter.calculate(-joystick1.getX() * 0.9) * MaxSpeed,
+                    aimingCommandWithHeading::getFieldAimRotation
                 )
             )
         );
+
+        JOYSTICK_BUTTON_13.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(0)));
 
         flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
         flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
@@ -242,4 +257,5 @@ public class RobotContainer {
     public Command getAutonomousCommand() {
         return autoChooser.getSelected();
     }
+
 }
