@@ -25,7 +25,7 @@ public class Limelight extends SubsystemBase {
 
     // Maximum distance (meters) at which we trust a vision measurement.
     // Tags seen from very far away produce noisy estimates.
-    private static final double MAX_TRUSTED_TAG_DIST = 4.5;
+    private static final double MAX_TRUSTED_TAG_DIST = 5.0;
 
     public Limelight(String name) {
         this.name = name;
@@ -70,7 +70,7 @@ public class Limelight extends SubsystemBase {
         // Supply the robot's current gyro yaw to MegaTag2 every loop.
         LimelightHelpers.SetRobotOrientation(
             name,
-            currentRobotPose.getRotation().getDegrees() - 90.0,
+            currentRobotPose.getRotation().getDegrees() - 90,
             0, 0, 0, 0, 0
         );
 
@@ -99,7 +99,7 @@ public class Limelight extends SubsystemBase {
         // the estimate harder than far-away ones.
         // rotational stddev = 9999 → never update heading from vision
         // (gyro is far more accurate for heading).
-        double xyStdDev = 0.1 + mt2.avgTagDist * 0.05;
+        double xyStdDev = 0.1 + mt2.avgTagDist * 0.002;
         final Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStdDev, xyStdDev, 9999.0);
 
         // Publish telemetry for AdvantageScope / Shuffleboard.
@@ -116,7 +116,7 @@ public class Limelight extends SubsystemBase {
     public Optional<PoseEstimate> getRawEstimate(Pose2d currentRobotPose) {
         LimelightHelpers.SetRobotOrientation(
             name,
-            currentRobotPose.getRotation().getDegrees(),
+            currentRobotPose.getRotation().getDegrees() - 90,
             0, 0, 0, 0, 0
         );
         PoseEstimate mt2 =

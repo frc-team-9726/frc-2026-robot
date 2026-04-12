@@ -18,37 +18,41 @@ import frc.robot.util.ShotTimeTable;
 
 public class AdaptiveHubAiming extends Command {
 
-  private static final int    LOOKAHEAD_ITERS       = 6;
-  private static final double TOF_EPSILON_SEC       = 0.001;
-  private static final double MAX_LEAD_TIME_SEC     = 2.0;
+  private static final int    LOOKAHEAD_ITERS        = 6;
+  private static final double TOF_EPSILON_SEC        = 0.001;
+  private static final double MAX_LEAD_TIME_SEC      = 2.0;
   private static final double SHOT_RELEASE_DELAY_SEC = 0.05;
-  private static final double TOF_TABLE_MIN_M       = 0.0;
-  private static final double TOF_TABLE_MAX_M       = 15.0;
+  private static final double TOF_TABLE_MIN_M        = 0.0;
+  private static final double TOF_TABLE_MAX_M        = 15.0;
+
+  private static final Translation2d TURRET_OFFSET_ROBOT =
+      new Translation2d(
+          Units.inchesToMeters(5), 
+          Units.inchesToMeters(-12.25)); 
 
   private final Flywheel flywheel;
   private final CommandSwerveDrivetrain drive;
   private final Limelight limelight;
 
-  private final boolean  isBlue;
+  private final boolean isBlue;
 
-  private double fieldAimAngleRad   = 0.0;
-  private double aimPathDistMeters  = 0.0;
+  private double fieldAimAngleRad  = 0.0;
+  private double aimPathDistMeters = 0.0;
 
   private enum Target { HUB, OUTPOST, DEPOT, NONE }
   private Target targetChoice = Target.HUB;
 
   public AdaptiveHubAiming(Flywheel flywheel, CommandSwerveDrivetrain drive, Limelight limelight, boolean isBlue) {
-    this.flywheel = flywheel;
-    this.drive    = drive;
+    this.flywheel  = flywheel;
+    this.drive     = drive;
     this.limelight = limelight;
-    this.isBlue   = isBlue;
+    this.isBlue    = isBlue;
     addRequirements(flywheel);
   }
 
   @Override
   public void execute() {
     Pose2d        robotPose   = limelight.getPose2d();
-    // robotPose = robotPose.rotateBy(new Rotation2d(Math.degreesto)));
     ChassisSpeeds robotSpeeds = drive.getRobotRelativeSpeeds();
 
     updateTargetChoice(robotPose);
@@ -94,10 +98,17 @@ public class AdaptiveHubAiming extends Command {
     ChassisSpeeds fieldSpeeds =
         ChassisSpeeds.fromRobotRelativeSpeeds(robotRelativeSpeeds, robotPose.getRotation());
 
-    Translation2d pivotFieldVelocity =
-        new Translation2d(fieldSpeeds.vxMetersPerSecond, fieldSpeeds.vyMetersPerSecond);
+    Translation2d turretOffsetField = TURRET_OFFSET_ROBOT.rotateBy(robotPose.getRotation());
+    Translation2d pivotFieldPosition = robotPose.getTranslation().plus(turretOffsetField);
 
-    Translation2d pivotFieldPosition = robotPose.getTranslation();
+    double omega = robotRelativeSpeeds.omegaRadiansPerSecond;
+    Translation2d omegaContribution = new Translation2d(
+        -omega * turretOffsetField.getY(),
+         omega * turretOffsetField.getX());
+
+    Translation2d comFieldVelocity =
+        new Translation2d(fieldSpeeds.vxMetersPerSecond, fieldSpeeds.vyMetersPerSecond);
+    Translation2d pivotFieldVelocity = comFieldVelocity.plus(omegaContribution);
 
     Translation2d releasePivotFieldPosition =
         addScaled(pivotFieldPosition, pivotFieldVelocity, SHOT_RELEASE_DELAY_SEC);
@@ -112,7 +123,7 @@ public class AdaptiveHubAiming extends Command {
       double        newAimPathDistance = releasePivotFieldPosition.getDistance(newAimPoint);
       double        newTof             = flightTimeSecondsSafe(newAimPathDistance);
 
-      aimPointField        = newAimPoint;
+      aimPointField         = newAimPoint;
       aimPathDistanceMeters = newAimPathDistance;
 
       boolean converged = Math.abs(newTof - tofSeconds) < TOF_EPSILON_SEC;
@@ -138,6 +149,7 @@ public class AdaptiveHubAiming extends Command {
         aimPointField,
         pivotFieldVelocity);
   }
+
 
   private void updateTargetChoice(Pose2d robotPose) {
     double xM = robotPose.getX();
@@ -172,10 +184,11 @@ public class AdaptiveHubAiming extends Command {
                           .getTranslation().toTranslation2d();
       case OUTPOST -> (isBlue ? FieldConstants.BLUE_OUTPOST_POSE3D : FieldConstants.RED_OUTPOST_POSE3D)
                           .getTranslation().toTranslation2d();
-      default      -> (isBlue ? FieldConstants.BLUE_HUB_POSE3D    : FieldConstants.RED_HUB_POSE3D)
+      default      -> (isBlue ? FieldConstants.BLUE_HUB_POSE3D     : FieldConstants.RED_HUB_POSE3D)
                           .getTranslation().toTranslation2d();
     };
   }
+
 
   private Translation2d addScaled(Translation2d base, Translation2d delta, double scale) {
     return new Translation2d(
@@ -188,16 +201,14 @@ public class AdaptiveHubAiming extends Command {
     return MathUtil.clamp(ShotTimeTable.getFlightTimeSeconds(clamped), 0.0, MAX_LEAD_TIME_SEC);
   }
 
-  // ── Logging ───────────────────────────────────────────────────────────────
-
   private void logSolution(AimSolution s) {
-    DogLog.log("AimDebug/TOFSeconds",         s.tofSeconds);
-    DogLog.log("AimDebug/ShotDistMeters",     s.shotDistanceMeters);
-    DogLog.log("AimDebug/AimPathDistMeters",  s.aimPathDistanceMeters);
-    DogLog.log("AimDebug/FieldAimAngleDeg",   Math.toDegrees(s.fieldAimAngleRad));
+    DogLog.log("AimDebug/TOFSeconds",          s.tofSeconds);
+    DogLog.log("AimDebug/ShotDistMeters",      s.shotDistanceMeters);
+    DogLog.log("AimDebug/AimPathDistMeters",   s.aimPathDistanceMeters);
+    DogLog.log("AimDebug/FieldAimAngleDeg",    Math.toDegrees(s.fieldAimAngleRad));
     DogLog.log("AimDebug/FlywheelSetpointRPM", s.shotSetpoint.shooterSpeed());
-    DogLog.log("AimDebug/PivotVelX",          s.pivotFieldVelocity.getX());
-    DogLog.log("AimDebug/PivotVelY",          s.pivotFieldVelocity.getY());
+    DogLog.log("AimDebug/PivotVelX",           s.pivotFieldVelocity.getX());
+    DogLog.log("AimDebug/PivotVelY",           s.pivotFieldVelocity.getY());
     DogLog.log("AimDebug/PivotPose",
         new Pose2d(s.pivotFieldPosition, new Rotation2d()));
     DogLog.log("AimDebug/ReleasePose",
@@ -206,9 +217,9 @@ public class AdaptiveHubAiming extends Command {
         new Pose2d(s.releasePivotFieldPosition, Rotation2d.fromRadians(s.fieldAimAngleRad)));
     DogLog.log("AimDebug/VirtualTarget",
         new Pose2d(s.aimPointField, new Rotation2d()));
-  }
 
-  // ── Result record ─────────────────────────────────────────────────────────
+    DogLog.log("AimDebug/AimSolution/TurretToHubDistMeters", s.shotDistanceMeters);
+  }
 
   private static final class AimSolution {
     final double        fieldAimAngleRad;

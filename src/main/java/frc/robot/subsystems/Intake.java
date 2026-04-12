@@ -24,7 +24,7 @@ public class Intake extends SubsystemBase {
 
     sparkConfig
         .idleMode(SparkMaxConfig.IdleMode.kCoast)
-        .smartCurrentLimit(40)
+        .smartCurrentLimit(60)
         .voltageCompensation(12.0);
     sparkConfig.signals.appliedOutputPeriodMs(20);
     sparkConfig.inverted(false);
@@ -34,11 +34,11 @@ public class Intake extends SubsystemBase {
   }
 
   public void intake() {
-    speed = 0.65;
+    speed = 0.90;
   }
 
   public void outake() {
-    speed = -0.25;
+    speed = -0.40;
   }
 
   public void autoIntake() {

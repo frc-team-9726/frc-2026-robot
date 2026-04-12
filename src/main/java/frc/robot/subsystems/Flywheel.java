@@ -17,9 +17,9 @@ public class Flywheel extends SubsystemBase {
   private static final int kCurrentLimitAmps = 40;
 
   private static final double kS = 0.0;       // [V]        — overcome static friction
-  private static final double kV = 0.1098;    // [V / RPS]  — steady-state (main FF term)
+  private static final double kV = 0.116;    // [V / RPS]  — steady-state (main FF term)
   private static final double kA = 0.0;       // [V / RPS²] — acceleration FF (optional)
-  private static final double kP = 0.0432;    // [V / RPS]  — proportional
+  private static final double kP = 0.08;    // [V / RPS]  — proportional
   private static final double kI = 0.0;       // [V / (RPS·s)]
   private static final double kD = 0.0;       // [V·s / RPS]
 
@@ -30,6 +30,7 @@ public class Flywheel extends SubsystemBase {
   private final NeutralOut neutralRequest = new NeutralOut();
 
   private double setpointRpm = 0.0;
+  private double oldSetpointRpm = 0.0;
 
   public Flywheel(int id) {
     motor = new TalonFX(id);
@@ -56,10 +57,14 @@ public class Flywheel extends SubsystemBase {
     cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
 
     motor.getConfigurator().apply(cfg);
+
   }
 
   public void setSetpointRpm(double rpm) {
     this.setpointRpm = rpm;
+  }
+  public void bumpSetpointRpm(double rpm) {
+    this.setpointRpm += rpm;
   }
 
   public void stop() {
@@ -76,8 +81,12 @@ public class Flywheel extends SubsystemBase {
     if (setpointRpm == 0.0) {
       motor.setControl(neutralRequest);
     } else {
-      double setpointRps = setpointRpm / 60.0;
-      motor.setControl(velocityRequest.withVelocity(setpointRps));
+      if (setpointRpm != oldSetpointRpm) {
+        oldSetpointRpm = setpointRpm;
+        
+        double setpointRps = setpointRpm / 60.0;
+        motor.setControl(velocityRequest.withVelocity(setpointRps));
+      }
     }
 
     double measuredRpm = motor.getVelocity().getValueAsDouble() * 60.0;

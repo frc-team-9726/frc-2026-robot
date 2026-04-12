@@ -32,9 +32,6 @@ import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Limelight;
 
 public class RobotContainer {
-    // FIX 1: Removed duplicate Pigeon2 instance — the drivetrain already owns one
-    // internally via TunerConstants. Creating a second one at the same CAN ID
-    // caused gyro resets to be invisible to the pose estimator.
 
     private final Flywheel flywheel = new Flywheel(14);
     private final Indexer indexer = new Indexer(34);
@@ -72,6 +69,8 @@ public class RobotContainer {
     private final JoystickButton JOYSTICK_BUTTON_2 = new JoystickButton(joystick1, 2);
     private final JoystickButton JOYSTICK_BUTTON_3 = new JoystickButton(joystick1, 3);
     private final JoystickButton JOYSTICK_BUTTON_4 = new JoystickButton(joystick1, 4);
+    private final JoystickButton JOYSTICK_BUTTON_5 = new JoystickButton(joystick1, 5);
+    private final JoystickButton JOYSTICK_BUTTON_10 = new JoystickButton(joystick1, 10);
     private final JoystickButton JOYSTICK_BUTTON_13 = new JoystickButton(joystick1, 13);
     private final JoystickButton JOYSTICK_BUTTON_14 = new JoystickButton(joystick1, 14);
     private final JoystickButton JOYSTICK_BUTTON_15 = new JoystickButton(joystick1, 15);
@@ -207,6 +206,8 @@ public class RobotContainer {
         );
 
         JOYSTICK_BUTTON_13.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(0)));
+        JOYSTICK_BUTTON_5.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(50)));
+        JOYSTICK_BUTTON_10.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(-50)));
 
         flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
         flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
@@ -226,7 +227,7 @@ public class RobotContainer {
 
         JOYSTICK_BUTTON_14.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800)));
         JOYSTICK_BUTTON_15.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
-        JOYSTICK_BUTTON_16.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
+        JOYSTICK_BUTTON_16.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
 
         gyroResetButton.onTrue(Commands.runOnce(() -> drivetrain.seedFieldCentric()));
 
