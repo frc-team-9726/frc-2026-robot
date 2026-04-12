@@ -72,7 +72,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private final SwerveRequest.FieldCentricFacingAngle m_aimRequest =
         new SwerveRequest.FieldCentricFacingAngle()
-            .withHeadingPID(3.2, 0.0, 0.0);
+            .withHeadingPID(3.5, 0.0, 0.0);
 
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
@@ -190,7 +190,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             this::getRobotRelativeSpeeds,
             (speeds, feedforwards) -> driveRobotRelative(speeds),
             new PPHolonomicDriveController(
-                new PIDConstants(3.85, 0.0, 0.0),
+                new PIDConstants(4.55, 0.0, 0.0),
                 new PIDConstants(3.2,  0.0, 0.0)
             ),
             config,
