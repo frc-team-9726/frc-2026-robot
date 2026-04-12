@@ -42,7 +42,7 @@ public class Intake extends SubsystemBase {
   }
 
   public void autoIntake() {
-    speed = 0.7;
+    speed = 0.9;
   }
 
   public void autoOutake() {

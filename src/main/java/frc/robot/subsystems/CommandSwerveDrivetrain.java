@@ -190,7 +190,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             this::getRobotRelativeSpeeds,
             (speeds, feedforwards) -> driveRobotRelative(speeds),
             new PPHolonomicDriveController(
-                new PIDConstants(3.85, 0.0, 0.0),
+                new PIDConstants(4.55, 0.0, 0.0),
                 new PIDConstants(3.2,  0.0, 0.0)
             ),
             config,

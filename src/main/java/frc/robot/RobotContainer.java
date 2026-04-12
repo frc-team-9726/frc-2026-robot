@@ -102,7 +102,10 @@ public class RobotContainer {
         configureBindings();
 
         NamedCommands.registerCommand("shoot speed close", Commands.runOnce(() -> {
-            flywheel.setSetpointRpm(3400);
+            flywheel.setSetpointRpm(3000);
+        }));
+        NamedCommands.registerCommand("shoot speed far", Commands.runOnce(() -> {
+            flywheel.setSetpointRpm(5950);
         }));
 
         NamedCommands.registerCommand("shoot", Commands.runOnce(() -> {
@@ -154,7 +157,7 @@ public class RobotContainer {
                 return drive
                     .withVelocityX(filteredX * MaxSpeed)
                     .withVelocityY(filteredY * MaxSpeed)
-                    .withRotationalRate(filteredRot * MaxAngularRate * 0.7);
+                    .withRotationalRate(filteredRot * MaxAngularRate * 0.35);
             })
         );
 
@@ -227,7 +230,7 @@ public class RobotContainer {
 
         JOYSTICK_BUTTON_14.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(5800)));
         JOYSTICK_BUTTON_15.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
-        JOYSTICK_BUTTON_16.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
+        JOYSTICK_BUTTON_16.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3000)));
 
         gyroResetButton.onTrue(Commands.runOnce(() -> drivetrain.seedFieldCentric()));
 

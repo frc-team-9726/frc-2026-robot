@@ -57,13 +57,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Top Auto 1 2"
+            "pathName": "Top Auto 1 2.1"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "shoot speed close"
+            "name": "shoot speed far"
           }
         },
         {

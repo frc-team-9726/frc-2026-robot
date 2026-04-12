@@ -32,7 +32,7 @@ public class ShotTable {
     table.put(3.1496 - fudgeFactor, new ShotSetpoint(4375));
     table.put(3.3528 - fudgeFactor, new ShotSetpoint(5200));
     table.put(3.5 - fudgeFactor, new ShotSetpoint(5800));
-    table.put(3.6 - fudgeFactor, new ShotSetpoint(6000));
+    table.put(3.6 - fudgeFactor, new ShotSetpoint(5900));
   }
 
   public static ShotSetpoint get(double distanceMeters) {
