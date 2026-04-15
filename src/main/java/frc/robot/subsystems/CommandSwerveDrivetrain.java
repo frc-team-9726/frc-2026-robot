@@ -236,6 +236,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return m_sysIdRoutineToApply.dynamic(direction);
     }
 
+    /**
+     * Runs the swerve drive with a fixed target heading.
+     * The translation suppliers are evaluated every loop, so the robot can
+     * translate freely while the heading controller holds the target angle.
+     */
     public Command runAimingInputs(
             DoubleSupplier x,
             DoubleSupplier y,

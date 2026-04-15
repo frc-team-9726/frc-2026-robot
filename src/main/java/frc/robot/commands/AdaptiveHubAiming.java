@@ -27,11 +27,13 @@ public class AdaptiveHubAiming extends Command {
 
   private static final Translation2d TURRET_OFFSET_ROBOT =
       new Translation2d(
-          Units.inchesToMeters(5), 
-          Units.inchesToMeters(-12.25)); 
+          Units.inchesToMeters(5),
+          Units.inchesToMeters(-12.25));
 
   private final Flywheel flywheel;
   private final CommandSwerveDrivetrain drive;
+  // Limelight kept for potential future use (e.g. direct tx-based correction)
+  // but pose is sourced from drive.getPose() for fused odometry+vision accuracy.
   private final Limelight limelight;
 
   private final boolean isBlue;
@@ -42,7 +44,11 @@ public class AdaptiveHubAiming extends Command {
   private enum Target { HUB, OUTPOST, DEPOT, NONE }
   private Target targetChoice = Target.HUB;
 
-  public AdaptiveHubAiming(Flywheel flywheel, CommandSwerveDrivetrain drive, Limelight limelight, boolean isBlue) {
+  public AdaptiveHubAiming(
+      Flywheel flywheel,
+      CommandSwerveDrivetrain drive,
+      Limelight limelight,
+      boolean isBlue) {
     this.flywheel  = flywheel;
     this.drive     = drive;
     this.limelight = limelight;
@@ -52,7 +58,10 @@ public class AdaptiveHubAiming extends Command {
 
   @Override
   public void execute() {
-    Pose2d        robotPose   = limelight.getPose2d();
+    // Use the drivetrain's fused pose estimator (odometry + vision).
+    // This updates every loop tick even when no AprilTag is visible,
+    // so translation while aiming works correctly on a swerve drive.
+    Pose2d        robotPose   = drive.getPose();
     ChassisSpeeds robotSpeeds = drive.getRobotRelativeSpeeds();
 
     updateTargetChoice(robotPose);
@@ -89,6 +98,10 @@ public class AdaptiveHubAiming extends Command {
   public double getAimPathDistanceMeters() {
     return aimPathDistMeters;
   }
+
+  // ---------------------------------------------------------------------------
+  // Aim solver: iterative lead-time compensation for a moving robot/target
+  // ---------------------------------------------------------------------------
 
   private AimSolution solveAim(
       Pose2d robotPose,
@@ -150,6 +163,9 @@ public class AdaptiveHubAiming extends Command {
         pivotFieldVelocity);
   }
 
+  // ---------------------------------------------------------------------------
+  // Target selection based on robot field position
+  // ---------------------------------------------------------------------------
 
   private void updateTargetChoice(Pose2d robotPose) {
     double xM = robotPose.getX();
@@ -189,6 +205,9 @@ public class AdaptiveHubAiming extends Command {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
 
   private Translation2d addScaled(Translation2d base, Translation2d delta, double scale) {
     return new Translation2d(
@@ -217,9 +236,12 @@ public class AdaptiveHubAiming extends Command {
         new Pose2d(s.releasePivotFieldPosition, Rotation2d.fromRadians(s.fieldAimAngleRad)));
     DogLog.log("AimDebug/VirtualTarget",
         new Pose2d(s.aimPointField, new Rotation2d()));
-
     DogLog.log("AimDebug/AimSolution/TurretToHubDistMeters", s.shotDistanceMeters);
   }
+
+  // ---------------------------------------------------------------------------
+  // AimSolution record
+  // ---------------------------------------------------------------------------
 
   private static final class AimSolution {
     final double        fieldAimAngleRad;

@@ -37,25 +37,17 @@ public class Limelight extends SubsystemBase {
         mt2PosePublisher = telemetryTable
                 .getStructTopic("MT2 Raw Pose", Pose2d.struct).publish();
 
-        // ---------------------------------------------------------------
-        // Camera pose relative to robot center.
-        // Adjust these numbers to match your physical mounting!
-        //   forward (+x), left (+y), up (+z) in meters
-        //   roll, pitch, yaw in degrees
-        //
-        // yaw = 0   → camera faces forward
-        // yaw = 180 → camera faces rearward
-        // yaw = 90  → camera faces LEFT — change if yours faces forward!
-        // ---------------------------------------------------------------
         LimelightHelpers.setCameraPose_RobotSpace(
             name,
-            0.3937, 0.2032, 0.349, // forward, left, up (meters)
-             0.0,    22.5,   0.0  // roll, pitch, yaw (degrees)
+            -0.146,  // forward  (negative = backward)
+            0.392,  // side     (negative = right)
+             0.343,   // up
+             0.0,     // roll
+             22.5,    // pitch
+            -90.0     // yaw: camera faces right side of robot
         );
 
         // Mode 0 = external gyro via SetRobotOrientation().
-        // Do NOT use the internal IMU (mode 1) at the same time as
-        // SetRobotOrientation() — they conflict and produce jitter.
         LimelightHelpers.SetIMUMode(name, 0);
     }
 
@@ -63,14 +55,15 @@ public class Limelight extends SubsystemBase {
      * Returns a vision measurement fused with the current gyro heading,
      * or empty if no tags are visible or the estimate is untrustworthy.
      *
-     * @param currentRobotPose  Latest pose from the drivetrain pose estimator.
-     *                          Used only for its rotation (gyro heading).
+     * @param currentRobotPose Latest pose from the drivetrain pose estimator.
+     *                         Used to supply the gyro heading to MegaTag2.
      */
     public Optional<Measurement> getMeasurement(Pose2d currentRobotPose) {
-        // Supply the robot's current gyro yaw to MegaTag2 every loop.
+        // Supply the true gyro yaw — no offset needed because the camera
+        // pose yaw is now set correctly above.
         LimelightHelpers.SetRobotOrientation(
             name,
-            currentRobotPose.getRotation().getDegrees() - 90,
+            currentRobotPose.getRotation().getDegrees(),
             0, 0, 0, 0, 0
         );
 
@@ -87,18 +80,17 @@ public class Limelight extends SubsystemBase {
             return Optional.empty();
         }
 
-        // Fuse: keep the limelight's XY translation but trust the gyro
-        // for rotation (heading) — MegaTag2 already does this internally,
-        // but we make it explicit so the downstream filter sees it clearly.
+        // Fuse: use MT2's XY translation (computed using correct camera geometry
+        // now) and gyro rotation. MT2 already bakes in the gyro heading, but we
+        // enforce it here explicitly so the downstream Kalman filter is never
+        // asked to correct heading from vision (gyro wins for rotation).
         Pose2d fusedPose = new Pose2d(
             mt2.pose.getTranslation(),
             currentRobotPose.getRotation()
         );
 
-        // Scale translational std devs with distance so nearby tags pull
-        // the estimate harder than far-away ones.
-        // rotational stddev = 9999 → never update heading from vision
-        // (gyro is far more accurate for heading).
+        // Scale translational std devs with distance — nearby tags pull harder.
+        // Rotational stddev = 9999 → never update heading from vision.
         double xyStdDev = 0.1 + mt2.avgTagDist * 0.002;
         final Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStdDev, xyStdDev, 9999.0);
 
@@ -106,23 +98,35 @@ public class Limelight extends SubsystemBase {
         fusedPosePublisher.set(fusedPose);
         mt2PosePublisher.set(mt2.pose);
 
-        currentPose = mt2.pose;
+        currentPose = fusedPose;
 
         mt2.pose = fusedPose;
         return Optional.of(new Measurement(mt2, stdDevs));
     }
 
-    /** Returns the raw MegaTag2 estimate without any filtering, for seeding. */
+    /**
+     * Returns the raw MegaTag2 estimate without filtering, used for initial
+     * pose seeding before odometry has a good reference.
+     */
     public Optional<PoseEstimate> getRawEstimate(Pose2d currentRobotPose) {
         LimelightHelpers.SetRobotOrientation(
             name,
-            currentRobotPose.getRotation().getDegrees() - 90,
+            currentRobotPose.getRotation().getDegrees(),
             0, 0, 0, 0, 0
         );
         PoseEstimate mt2 =
             LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(name);
         if (mt2 == null || mt2.tagCount == 0) return Optional.empty();
         return Optional.of(mt2);
+    }
+
+    /**
+     * Returns the latest fused pose (MT2 XY + gyro heading).
+     * Prefer drive.getPose() in commands that have drivetrain access,
+     * as that pose is continuously corrected by both odometry and vision.
+     */
+    public Pose2d getPose2d() {
+        return currentPose;
     }
 
     public static class Measurement {
@@ -134,9 +138,5 @@ public class Limelight extends SubsystemBase {
             this.poseEstimate = poseEstimate;
             this.standardDeviations = standardDeviations;
         }
-    }
-
-    public Pose2d getPose2d() {
-        return currentPose;
     }
 }

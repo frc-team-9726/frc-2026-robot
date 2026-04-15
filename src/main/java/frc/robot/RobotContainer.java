@@ -1,7 +1,3 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
@@ -34,18 +30,24 @@ import frc.robot.subsystems.Limelight;
 public class RobotContainer {
 
     private final Flywheel flywheel = new Flywheel(14);
-    private final Indexer indexer = new Indexer(34);
+    private final Indexer indexer   = new Indexer(34);
     private final Agitator agitator = new Agitator(4);
-    private final Intake intake = new Intake(2);
+    private final Intake intake     = new Intake(2);
     private final Limelight limelight = new Limelight("limelight");
 
-    private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
+    private double MaxSpeed       = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
     private double MaxAngularRate = RotationsPerSecond.of(1.25).in(RadiansPerSecond);
 
-    // 2 = 0.5 seconds to max speed, 4 = 0.25 seconds etc...
+    // Default drive rate limiters (shared between default command and joystick2 branch).
     private final SlewRateLimiter xLimiter   = new SlewRateLimiter(2.0);
     private final SlewRateLimiter yLimiter   = new SlewRateLimiter(2.0);
     private final SlewRateLimiter rotLimiter = new SlewRateLimiter(3.0);
+
+    // Dedicated aiming limiters — isolated from the default command so their
+    // internal state doesn't carry stale ramp values when button 2 is pressed
+    // mid-maneuver.
+    private final SlewRateLimiter aimXLimiter = new SlewRateLimiter(2.0);
+    private final SlewRateLimiter aimYLimiter = new SlewRateLimiter(2.0);
 
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1)
@@ -65,11 +67,11 @@ public class RobotContainer {
 
     private final JoystickButton gyroResetButton = new JoystickButton(joystick1, 8);
 
-    private final JoystickButton JOYSTICK_BUTTON_1 = new JoystickButton(joystick1, 1);
-    private final JoystickButton JOYSTICK_BUTTON_2 = new JoystickButton(joystick1, 2);
-    private final JoystickButton JOYSTICK_BUTTON_3 = new JoystickButton(joystick1, 3);
-    private final JoystickButton JOYSTICK_BUTTON_4 = new JoystickButton(joystick1, 4);
-    private final JoystickButton JOYSTICK_BUTTON_5 = new JoystickButton(joystick1, 5);
+    private final JoystickButton JOYSTICK_BUTTON_1  = new JoystickButton(joystick1, 1);
+    private final JoystickButton JOYSTICK_BUTTON_2  = new JoystickButton(joystick1, 2);
+    private final JoystickButton JOYSTICK_BUTTON_3  = new JoystickButton(joystick1, 3);
+    private final JoystickButton JOYSTICK_BUTTON_4  = new JoystickButton(joystick1, 4);
+    private final JoystickButton JOYSTICK_BUTTON_5  = new JoystickButton(joystick1, 5);
     private final JoystickButton JOYSTICK_BUTTON_10 = new JoystickButton(joystick1, 10);
     private final JoystickButton JOYSTICK_BUTTON_13 = new JoystickButton(joystick1, 13);
     private final JoystickButton JOYSTICK_BUTTON_14 = new JoystickButton(joystick1, 14);
@@ -94,25 +96,23 @@ public class RobotContainer {
     private final JoystickButton flywheel16trButton = new JoystickButton(keyboard, 16);
     private final JoystickButton OFFButton          = new JoystickButton(keyboard, 20);
 
-    public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain(drive, limelight);
+    public final CommandSwerveDrivetrain drivetrain =
+        TunerConstants.createDrivetrain(drive, limelight);
 
     private final SendableChooser<Command> autoChooser;
 
     public RobotContainer() {
         configureBindings();
 
-        NamedCommands.registerCommand("shoot speed close", Commands.runOnce(() -> {
-            flywheel.setSetpointRpm(3000);
-        }));
-        NamedCommands.registerCommand("shoot speed far", Commands.runOnce(() -> {
-            flywheel.setSetpointRpm(5950);
-        }));
+        NamedCommands.registerCommand("shoot speed close", Commands.runOnce(() ->
+            flywheel.setSetpointRpm(3000)));
+        NamedCommands.registerCommand("shoot speed far", Commands.runOnce(() ->
+            flywheel.setSetpointRpm(5950)));
 
         NamedCommands.registerCommand("shoot", Commands.runOnce(() -> {
             indexer.intake();
             agitator.intake();
         }));
-
         NamedCommands.registerCommand("stop shoot", Commands.runOnce(() -> {
             indexer.stop();
             agitator.stop();
@@ -122,17 +122,14 @@ public class RobotContainer {
             agitator.intake();
             intake.intake();
         }));
-
         NamedCommands.registerCommand("auto intake", Commands.runOnce(() -> {
             agitator.outake();
             intake.autoIntake();
         }));
-
         NamedCommands.registerCommand("auto outake", Commands.runOnce(() -> {
             agitator.outake();
             intake.autoOutake();
         }));
-
         NamedCommands.registerCommand("stop intake", Commands.runOnce(() -> {
             agitator.stop();
             intake.stop();
@@ -143,16 +140,13 @@ public class RobotContainer {
     }
 
     private void configureBindings() {
+
         // --- Default drive: joystick1, normal rate-based turning ---
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() -> {
-                double rawX   = -joystick1.getY() * 0.9;
-                double rawY   = -joystick1.getX() * 0.9;
-                double rawRot = -joystick1.getZ();
-
-                double filteredX   = xLimiter.calculate(rawX);
-                double filteredY   = yLimiter.calculate(rawY);
-                double filteredRot = rotLimiter.calculate(rawRot);
+                double filteredX   = xLimiter.calculate(-joystick1.getY() * 0.9);
+                double filteredY   = yLimiter.calculate(-joystick1.getX() * 0.9);
+                double filteredRot = rotLimiter.calculate(-joystick1.getZ());
 
                 return drive
                     .withVelocityX(filteredX * MaxSpeed)
@@ -161,14 +155,12 @@ public class RobotContainer {
             })
         );
 
+        // --- Joystick2: field-centric with snap-to-angle ---
         new JoystickButton(joystick2, 1).whileTrue(
             drivetrain.applyRequest(() -> {
-                double rawX = -joystick2.getY() * 0.9;
-                double rawY = -joystick2.getX() * 0.9;
-                double rotX = joystick2.getZ();
-
-                double filteredX = xLimiter.calculate(rawX);
-                double filteredY = yLimiter.calculate(rawY);
+                double filteredX = xLimiter.calculate(-joystick2.getY() * 0.9);
+                double filteredY = yLimiter.calculate(-joystick2.getX() * 0.9);
+                double rotX      = joystick2.getZ();
 
                 if (Math.abs(rotX) > 0.2) {
                     return driveWithAngle
@@ -185,29 +177,27 @@ public class RobotContainer {
         );
 
         drivetrain.registerTelemetry(logger::telemeterize);
-        
+
+        // --- Hub aiming ---
+        // One command instance is enough — it doesn't hold any persistent
+        // per-press state, so reusing it is safe.
         AdaptiveHubAiming aimingCommand = new AdaptiveHubAiming(
             flywheel, drivetrain, limelight,
             DriverStation.getAlliance().orElse(Alliance.Blue) != Alliance.Red
         );
 
-        AdaptiveHubAiming aimingCommandWithHeading = new AdaptiveHubAiming(
-            flywheel, drivetrain, limelight,
-            DriverStation.getAlliance().orElse(Alliance.Blue) != Alliance.Red
-        );
-
-        // JOYSTICK_BUTTON_2.whileTrue(aimingCommand);
-
+        // Button 2: aim + translate freely with dedicated (non-shared) limiters.
         JOYSTICK_BUTTON_2.whileTrue(
-            aimingCommandWithHeading.alongWith(
+            aimingCommand.alongWith(
                 drivetrain.runAimingInputs(
-                    () -> xLimiter.calculate(-joystick1.getY() * 0.9) * MaxSpeed,
-                    () -> yLimiter.calculate(-joystick1.getX() * 0.9) * MaxSpeed,
-                    aimingCommandWithHeading::getFieldAimRotation
+                    () -> aimXLimiter.calculate(-joystick1.getY() * 0.9) * MaxSpeed,
+                    () -> aimYLimiter.calculate(-joystick1.getX() * 0.9) * MaxSpeed,
+                    aimingCommand::getFieldAimRotation
                 )
             )
         );
 
+        // --- Flywheel preset RPM ---
         JOYSTICK_BUTTON_13.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(0)));
         JOYSTICK_BUTTON_5.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(50)));
         JOYSTICK_BUTTON_10.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(-50)));
@@ -232,10 +222,10 @@ public class RobotContainer {
         JOYSTICK_BUTTON_15.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(4600)));
         JOYSTICK_BUTTON_16.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3000)));
 
+        // --- Gyro reset ---
         gyroResetButton.onTrue(Commands.runOnce(() -> drivetrain.seedFieldCentric()));
 
-
-
+        // --- Indexer / agitator ---
         JOYSTICK_BUTTON_1.onTrue(Commands.runOnce(() -> {
             indexer.intake();
             agitator.intake();
@@ -245,9 +235,11 @@ public class RobotContainer {
             agitator.stop();
         }));
 
+        // --- Intake ---
         JOYSTICK_BUTTON_3.onTrue(Commands.runOnce(() -> intake.intake()));
         JOYSTICK_BUTTON_3.onFalse(Commands.runOnce(() -> intake.stop()));
 
+        // --- Outtake ---
         JOYSTICK_BUTTON_4.onTrue(Commands.runOnce(() -> {
             agitator.outake();
             intake.outake();
@@ -261,5 +253,4 @@ public class RobotContainer {
     public Command getAutonomousCommand() {
         return autoChooser.getSelected();
     }
-
 }
