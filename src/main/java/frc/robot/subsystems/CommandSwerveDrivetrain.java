@@ -45,21 +45,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
 
-    private final SlewRateLimiter limiter = new SlewRateLimiter(1);
+    // One limiter per axis — sharing a single instance corrupts all three outputs.
+    private final SlewRateLimiter xLimiter   = new SlewRateLimiter(1);
+    private final SlewRateLimiter yLimiter   = new SlewRateLimiter(1);
+    private final SlewRateLimiter rotLimiter = new SlewRateLimiter(1);
 
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.fromDegrees(0);
     private static final Rotation2d kRedAlliancePerspectiveRotation  = Rotation2d.fromDegrees(0);
 
     private boolean m_hasAppliedOperatorPerspective = false;
-
-    // -----------------------------------------------------------------------
-    // Vision seeding
-    // On first valid Limelight measurement we hard-reset the pose estimator
-    // so odometry starts from a real field position instead of (0, 0).
-    // Without this, a large initial error causes the Kalman filter to reject
-    // vision measurements because they disagree too much with odometry.
-    // -----------------------------------------------------------------------
-    private boolean m_hasSeededPose = false;
 
     private final StructPublisher<Pose2d> posePublisher;
     private final NetworkTable telemetryTable;
@@ -221,9 +215,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public Command runJoystickInputs(double x, double y, double rotation) {
         return run(() ->
             this.setControl(
-                drive.withVelocityX(limiter.calculate(x))
-                    .withVelocityY(limiter.calculate(y))
-                    .withRotationalRate(limiter.calculate(rotation))
+                drive.withVelocityX(xLimiter.calculate(x))
+                    .withVelocityY(yLimiter.calculate(y))
+                    .withRotationalRate(rotLimiter.calculate(rotation))
             )
         );
     }
@@ -252,7 +246,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic() {
-        // Apply alliance-relative forward direction once we know the alliance.
         if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
             DriverStation.getAlliance().ifPresent(allianceColor -> {
                 setOperatorPerspectiveForward(
@@ -264,40 +257,20 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             });
         }
 
-        // -----------------------------------------------------------------
-        // Vision: seed the pose estimator on the first valid measurement.
-        // This eliminates the large initial odometry error that would
-        // otherwise prevent vision from correcting the estimate.
-        // -----------------------------------------------------------------
-        if (!m_hasSeededPose) {
-            limelight.getRawEstimate(getPose()).ifPresent(estimate -> {
-                // Hard-reset to the limelight's reported position.
-                // Keep the current gyro heading so the reset feels smooth.
-                Pose2d seedPose = new Pose2d(
-                    estimate.pose.getTranslation(),
-                    getPose().getRotation()
-                );
-                resetPose(seedPose);
-                m_hasSeededPose = true;
-            });
-        }
-
-        // Normal every-loop vision update.
-        limelight.getMeasurement(getPose()).ifPresent(measurement ->
+        limelight.getMeasurement(getPose()).ifPresent(m ->
             addVisionMeasurement(
-                measurement.poseEstimate.pose,
-                measurement.poseEstimate.timestampSeconds,
-                measurement.standardDeviations
+                m.poseEstimate.pose,
+                m.poseEstimate.timestampSeconds,
+                m.standardDeviations
             )
         );
 
-        // Publish real pose for AdvantageScope.
         posePublisher.set(getPose());
     }
 
     @Override
     public void addVisionMeasurement(Pose2d visionRobotPoseMeters, double timestampSeconds) {
-        super.addVisionMeasurement(visionRobotPoseMeters, timestampSeconds);
+        super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds));
     }
 
     @Override
@@ -306,7 +279,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         double timestampSeconds,
         Matrix<N3, N1> visionMeasurementStdDevs
     ) {
-        super.addVisionMeasurement(visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
+        super.addVisionMeasurement(
+            visionRobotPoseMeters,
+            Utils.fpgaToCurrentTime(timestampSeconds),
+            visionMeasurementStdDevs
+        );
     }
 
     @Override

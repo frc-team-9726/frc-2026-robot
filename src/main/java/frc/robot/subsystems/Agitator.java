@@ -24,8 +24,7 @@ public class Agitator extends SubsystemBase {
 
     sparkConfig
         .idleMode(SparkMaxConfig.IdleMode.kCoast)
-        .smartCurrentLimit(40)
-        .voltageCompensation(12.0);
+        .smartCurrentLimit(40);
     sparkConfig.signals.appliedOutputPeriodMs(20);
     sparkConfig.inverted(true);
 
@@ -51,7 +50,7 @@ public class Agitator extends SubsystemBase {
       oldSpeed = speed;
       motor.set(oldSpeed);
     }
-    DogLog.log("indexer/outputCurrent", motor.getOutputCurrent());
-    DogLog.log("indexer/speed", motor.getEncoder().getVelocity());
+    DogLog.log("agitator/outputCurrent", motor.getOutputCurrent());
+    DogLog.log("agitator/speed", motor.getEncoder().getVelocity());
   }
 }

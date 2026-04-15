@@ -14,7 +14,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Flywheel extends SubsystemBase {
 
   private static final boolean kInverted = false;
-  private static final int kCurrentLimitAmps = 40;
 
   private static final double kS = 0.0;       // [V]        — overcome static friction
   private static final double kV = 0.116;    // [V / RPS]  — steady-state (main FF term)
@@ -53,7 +52,10 @@ public class Flywheel extends SubsystemBase {
     slot0.kI = kI;
     slot0.kD = kD;
 
-    cfg.CurrentLimits.SupplyCurrentLimit = kCurrentLimitAmps;
+
+    cfg.CurrentLimits.StatorCurrentLimit = 80.0;
+    cfg.CurrentLimits.StatorCurrentLimitEnable = true;
+    cfg.CurrentLimits.SupplyCurrentLimit = 60.0;
     cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
 
     motor.getConfigurator().apply(cfg);
@@ -78,15 +80,11 @@ public class Flywheel extends SubsystemBase {
 
   @Override
   public void periodic() {
-    if (setpointRpm == 0.0) {
-      motor.setControl(neutralRequest);
-    } else {
-      if (setpointRpm != oldSetpointRpm) {
-        oldSetpointRpm = setpointRpm;
         
-        double setpointRps = setpointRpm / 60.0;
-        motor.setControl(velocityRequest.withVelocity(setpointRps));
-      }
+    if (setpointRpm == 0.0) {
+        motor.setControl(neutralRequest);
+    } else {
+        motor.setControl(velocityRequest.withVelocity(setpointRpm / 60.0));
     }
 
     double measuredRpm = motor.getVelocity().getValueAsDouble() * 60.0;
