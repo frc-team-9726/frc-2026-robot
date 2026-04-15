@@ -27,8 +27,8 @@ public class AdaptiveHubAiming extends Command {
 
   private static final Translation2d TURRET_OFFSET_ROBOT =
       new Translation2d(
-          Units.inchesToMeters(5),
-          Units.inchesToMeters(-12.25));
+          Units.inchesToMeters(-6.25),
+          Units.inchesToMeters(12.25));
 
   private final Flywheel flywheel;
   private final CommandSwerveDrivetrain drive;
@@ -58,10 +58,8 @@ public class AdaptiveHubAiming extends Command {
 
   @Override
   public void execute() {
-    // Use the drivetrain's fused pose estimator (odometry + vision).
-    // This updates every loop tick even when no AprilTag is visible,
-    // so translation while aiming works correctly on a swerve drive.
     Pose2d        robotPose   = drive.getPose();
+    // Pose2d        robotPose   = limelight.getPose2d();
     ChassisSpeeds robotSpeeds = drive.getRobotRelativeSpeeds();
 
     updateTargetChoice(robotPose);

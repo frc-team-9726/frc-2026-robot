@@ -24,8 +24,7 @@ public class Intake extends SubsystemBase {
 
     sparkConfig
         .idleMode(SparkMaxConfig.IdleMode.kCoast)
-        .smartCurrentLimit(60)
-        .voltageCompensation(12.0);
+        .smartCurrentLimit(60);
     sparkConfig.signals.appliedOutputPeriodMs(20);
     sparkConfig.inverted(false);
 
@@ -59,7 +58,7 @@ public class Intake extends SubsystemBase {
       oldSpeed = speed;
       motor.set(oldSpeed);
     }
-    DogLog.log("indexer/outputCurrent", motor.getOutputCurrent());
-    DogLog.log("indexer/speed", motor.getEncoder().getVelocity());
+    DogLog.log("intake/outputCurrent", motor.getOutputCurrent());
+    DogLog.log("intake/speed", motor.getEncoder().getVelocity());
   }
 }
