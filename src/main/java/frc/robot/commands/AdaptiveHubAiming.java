@@ -59,6 +59,9 @@ public class AdaptiveHubAiming extends Command {
   @Override
   public void execute() {
     Pose2d        robotPose   = drive.getPose();
+    // if (!isBlue) {
+    //   robotPose.rotateBy(new Rotation2d(Math.toRadians(180)));
+    // }
     // Pose2d        robotPose   = limelight.getPose2d();
     ChassisSpeeds robotSpeeds = drive.getRobotRelativeSpeeds();
 
@@ -90,7 +93,13 @@ public class AdaptiveHubAiming extends Command {
   }
 
   public Rotation2d getFieldAimRotation() {
-    return Rotation2d.fromRadians(fieldAimAngleRad + Math.toRadians(90));
+    if (isBlue) {
+      
+      return Rotation2d.fromRadians(fieldAimAngleRad + Math.toRadians(90));
+    }
+    
+      
+      return Rotation2d.fromRadians(fieldAimAngleRad + Math.toRadians(270));
   }
 
   public double getAimPathDistanceMeters() {

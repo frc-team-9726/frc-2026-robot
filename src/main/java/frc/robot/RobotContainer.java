@@ -63,7 +63,6 @@ public class RobotContainer {
 
     private final Joystick keyboard  = new Joystick(0);
     private final Joystick joystick1 = new Joystick(1);
-    private final Joystick joystick2 = new Joystick(2);
 
     private final JoystickButton gyroResetButton = new JoystickButton(joystick1, 8);
 
@@ -142,6 +141,27 @@ public class RobotContainer {
     private void configureBindings() {
 
         // --- Default drive: joystick1, normal rate-based turning ---
+        // drivetrain.setDefaultCommand(
+        //     drivetrain.applyRequest(() -> {
+        //         double filteredX   = xLimiter.calculate(-joystick1.getY() * 0.9);
+        //         double filteredY   = yLimiter.calculate(-joystick1.getX() * 0.9);
+        //         double filteredRot = rotLimiter.calculate(-joystick1.getZ());
+
+        //         if (DriverStation.getAlliance().orElse(Alliance.Blue) != Alliance.Red) {
+                    
+        //         return drive
+        //             .withVelocityX(filteredX * MaxSpeed)
+        //             .withVelocityY(filteredY * MaxSpeed)
+        //             .withRotationalRate(filteredRot * MaxAngularRate * 0.35);
+        //         } else{
+                    
+        //         return drive
+        //             .withVelocityX(-filteredX * MaxSpeed)
+        //             .withVelocityY(-filteredY * MaxSpeed)
+        //             .withRotationalRate(filteredRot * MaxAngularRate * 0.35);
+        //         }
+        //     })
+        // );
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() -> {
                 double filteredX   = xLimiter.calculate(-joystick1.getY() * 0.9);
@@ -155,27 +175,6 @@ public class RobotContainer {
             })
         );
 
-        // --- Joystick2: field-centric with snap-to-angle ---
-        new JoystickButton(joystick2, 1).whileTrue(
-            drivetrain.applyRequest(() -> {
-                double filteredX = xLimiter.calculate(-joystick2.getY() * 0.9);
-                double filteredY = yLimiter.calculate(-joystick2.getX() * 0.9);
-                double rotX      = joystick2.getZ();
-
-                if (Math.abs(rotX) > 0.2) {
-                    return driveWithAngle
-                        .withVelocityX(filteredX * MaxSpeed)
-                        .withVelocityY(filteredY * MaxSpeed)
-                        .withTargetDirection(Rotation2d.fromRadians(rotX * Math.PI));
-                } else {
-                    return drive
-                        .withVelocityX(filteredX * MaxSpeed)
-                        .withVelocityY(filteredY * MaxSpeed)
-                        .withRotationalRate(0);
-                }
-            })
-        );
-
         drivetrain.registerTelemetry(logger::telemeterize);
 
         // --- Hub aiming ---
@@ -183,7 +182,7 @@ public class RobotContainer {
         // per-press state, so reusing it is safe.
         AdaptiveHubAiming aimingCommand = new AdaptiveHubAiming(
             flywheel, drivetrain, limelight,
-            DriverStation.getAlliance().orElse(Alliance.Blue) != Alliance.Red
+            DriverStation.getAlliance().isPresent() && DriverStation.getAlliance().get() == Alliance.Blue
         );
 
         // Button 2: aim + translate freely with dedicated (non-shared) limiters.

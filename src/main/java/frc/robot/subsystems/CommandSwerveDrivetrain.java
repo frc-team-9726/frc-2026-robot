@@ -51,7 +51,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SlewRateLimiter rotLimiter = new SlewRateLimiter(1);
 
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.fromDegrees(0);
-    private static final Rotation2d kRedAlliancePerspectiveRotation  = Rotation2d.fromDegrees(0);
+    private static final Rotation2d kRedAlliancePerspectiveRotation  = Rotation2d.fromDegrees(180);
 
     private boolean m_hasAppliedOperatorPerspective = false;
 
