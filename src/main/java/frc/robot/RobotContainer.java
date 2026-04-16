@@ -199,8 +199,8 @@ public class RobotContainer {
 
         // --- Flywheel preset RPM ---
         JOYSTICK_BUTTON_13.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(0)));
-        JOYSTICK_BUTTON_5.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(50)));
-        JOYSTICK_BUTTON_10.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(-50)));
+        // JOYSTICK_BUTTON_5.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(50)));
+        // JOYSTICK_BUTTON_10.onTrue(flywheel.runOnce(() -> flywheel.bumpSetpointRpm(-50)));
 
         flywheel1trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3200)));
         flywheel2trButton.onTrue(flywheel.run(() -> flywheel.setSetpointRpm(3400)));
@@ -226,6 +226,10 @@ public class RobotContainer {
         gyroResetButton.onTrue(Commands.runOnce(() -> drivetrain.seedFieldCentric()));
 
         // --- Indexer / agitator ---
+        JOYSTICK_BUTTON_5.onTrue(Commands.runOnce(() -> {
+            indexer.outake();
+            agitator.outake();
+        }));
         JOYSTICK_BUTTON_1.onTrue(Commands.runOnce(() -> {
             indexer.intake();
             agitator.intake();
