@@ -7,7 +7,7 @@ import edu.wpi.first.math.interpolation.InverseInterpolator;
 
 public class ShotTable {
 
-  private static double fudgeFactor = 0.420;
+  private static double fudgeFactor = 0.11;
 
   public record ShotSetpoint(double shooterSpeed) {
     public ShotSetpoint trimSetpoint() {

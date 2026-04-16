@@ -230,6 +230,10 @@ public class RobotContainer {
             indexer.outake();
             agitator.outake();
         }));
+        JOYSTICK_BUTTON_5.onFalse(Commands.runOnce(() -> {
+            indexer.stop();
+            agitator.stop();
+        }));
         JOYSTICK_BUTTON_1.onTrue(Commands.runOnce(() -> {
             indexer.intake();
             agitator.intake();
